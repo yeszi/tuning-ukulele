@@ -1,9 +1,9 @@
 import { detectPitch } from "./pitchDetector.js";
 import { detectChordFromChroma } from "./tuner.js";
 
-/* --------------------------------------------------
-    DOM References
--------------------------------------------------- */
+/* ----------------------------
+   DOM refs (guard if missing)
+   ---------------------------- */
 const startBtn = document.getElementById("startBtn");
 const chordLabel = document.getElementById("chordLabel");
 const chordScore = document.getElementById("chordScore");
@@ -25,274 +25,304 @@ const thresholdInput = document.getElementById("threshold");
 const chromaThresh = document.getElementById("chromaThresh");
 const modeSelect = document.getElementById("modeSelect");
 
-// logging UI
 const logEl = document.getElementById("log");
-const log = (msg) => {
-    if (window?.UKCOZY?.log) {
-        window.UKCOZY.log(msg);
-    } else {
-        const t = new Date().toLocaleTimeString();
-        logEl.textContent += `[${t}] ${msg}\n`;
-        logEl.scrollTop = logEl.scrollHeight;
-    }
+const uiLog = (m) => {
+  if (window?.UKCOZY?.log) window.UKCOZY.log(m);
+  else if (logEl) {
+    logEl.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  } else console.log("[UkCozy] " + m);
 };
 
-/* --------------------------------------------------
-    Audio
--------------------------------------------------- */
+/* ----------------------------
+   Basic guards: required DOM
+   ---------------------------- */
+if (!startBtn) uiLog("WARNING: startBtn not found");
+if (!spectroCanvas || !chromaCanvas) uiLog("WARNING: spectroCanvas/chromaCanvas not found");
+
+/* ----------------------------
+   Audio state
+   ---------------------------- */
 let audioCtx = null;
 let analyser = null;
 let sourceNode = null;
 let micStream = null;
 let running = false;
 
-/* --------------------------------------------------
-    Canvas Setup
--------------------------------------------------- */
-const spCtx = spectroCanvas.getContext("2d");
-const chCtx = chromaCanvas.getContext("2d");
+/* ----------------------------
+   Canvas contexts (guard)
+   ---------------------------- */
+const spCtx = spectroCanvas ? spectroCanvas.getContext("2d") : null;
+const chCtx = chromaCanvas ? chromaCanvas.getContext("2d") : null;
 
 function resizeCanvas() {
-    spectroCanvas.width = spectroCanvas.clientWidth;
-    spectroCanvas.height = spectroCanvas.clientHeight;
-    chromaCanvas.width = chromaCanvas.clientWidth;
-    chromaCanvas.height = chromaCanvas.clientHeight;
+  if (!spectroCanvas || !chromaCanvas) return;
+  spectroCanvas.width = spectroCanvas.clientWidth || 400;
+  spectroCanvas.height = spectroCanvas.clientHeight || 140;
+  chromaCanvas.width = chromaCanvas.clientWidth || 400;
+  chromaCanvas.height = chromaCanvas.clientHeight || 64;
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-/* --------------------------------------------------
-    Compute Chroma
--------------------------------------------------- */
+/* ----------------------------
+   Helpers: chroma from FFT magnitude
+   ---------------------------- */
 function computeChroma(mag, sampleRate, fftSize) {
-    const chroma = Array(12).fill(0);
+  const chroma = Array(12).fill(0);
+  if (!mag || mag.length === 0) return chroma;
 
-    for (let i = 0; i < mag.length; i++) {
-        const freq = i * (sampleRate / fftSize);
-        if (freq < 60 || freq > 5000) continue;
-
-        const midi = Math.round(12 * Math.log2(freq / 440) + 69);
-        const pc = ((midi % 12) + 12) % 12;
-        chroma[pc] += mag[i];
-    }
-
-    const max = Math.max(...chroma);
-    if (max > 0) {
-        for (let i = 0; i < 12; i++) chroma[i] /= max;
-    }
-
-    return chroma;
+  for (let i = 0; i < mag.length; i++) {
+    const freq = i * (sampleRate / fftSize);
+    if (freq < 60 || freq > 5000) continue;
+    const midi = Math.round(12 * Math.log2(freq / 440) + 69);
+    const pc = ((midi % 12) + 12) % 12;
+    chroma[pc] += mag[i];
+  }
+  const max = Math.max(...chroma);
+  if (max > 0) for (let i = 0; i < 12; i++) chroma[i] /= max;
+  return chroma;
 }
 
-/* --------------------------------------------------
-    Start Audio
--------------------------------------------------- */
+/* ----------------------------
+   Permission helper
+   ---------------------------- */
+async function checkMicrophonePermission() {
+  try {
+    if (!navigator.permissions) return "unknown";
+    const status = await navigator.permissions.query({ name: "microphone" });
+    return status.state; // 'granted' | 'prompt' | 'denied'
+  } catch (e) {
+    return "unknown";
+  }
+}
+
+/* ----------------------------
+   Start audio (robust)
+   ---------------------------- */
 async function start() {
-    if (running) return;
-
-    try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        await audioCtx.resume();
-
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        sourceNode = audioCtx.createMediaStreamSource(micStream);
-
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 4096;
-
-        sourceNode.connect(analyser);
-        running = true;
-
-        startBtn.textContent = "STOP";
-        window.UKCOZY?.setStartPulsing(true);
-
-        log("Audio started");
-        renderLoop();
-
-    } catch (err) {
-        log("Mic error: " + err.message);
+  if (running) return;
+  try {
+    // permission quick-check
+    const state = await checkMicrophonePermission();
+    if (state === "denied") {
+      uiLog("Microphone permission is denied — allow microphone in browser settings.");
+      return;
     }
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // resume if suspended (Chrome mobile/desktop)
+    if (audioCtx.state === "suspended") {
+      try { await audioCtx.resume(); } catch (e) { uiLog("resume() failed: " + e.message); }
+    }
+
+    // request mic (this will popup permission dialog if needed)
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    sourceNode = audioCtx.createMediaStreamSource(micStream);
+
+    analyser = audioCtx.createAnalyser();
+    // sanity: ensure fftSize is power of two and within range
+    analyser.fftSize = 4096;
+    sourceNode.connect(analyser);
+
+    running = true;
+    if (startBtn) startBtn.textContent = "STOP";
+    window.UKCOZY?.setStartPulsing?.(true);
+    uiLog("Audio started (sampleRate: " + audioCtx.sampleRate + ")");
+
+    renderLoop();
+  } catch (err) {
+    uiLog("Mic error: " + (err && err.message ? err.message : String(err)));
+  }
 }
 
-/* --------------------------------------------------
-    Stop Audio
--------------------------------------------------- */
+/* ----------------------------
+   Stop audio
+   ---------------------------- */
 function stop() {
-    if (!running) return;
-
-    running = false;
-    startBtn.textContent = "START";
-    window.UKCOZY?.setStartPulsing(false);
-
-    try {
-        micStream?.getTracks().forEach(t => t.stop());
-        audioCtx.close();
-    } catch {}
-
-    log("Audio stopped");
+  if (!running) return;
+  running = false;
+  if (startBtn) startBtn.textContent = "START";
+  window.UKCOZY?.setStartPulsing?.(false);
+  try {
+    micStream?.getTracks().forEach(t => t.stop());
+    if (audioCtx && audioCtx.state !== "closed") audioCtx.close();
+  } catch (e) { uiLog("Stop error: " + e.message); }
+  uiLog("Audio stopped");
 }
 
-startBtn.addEventListener("click", () => (!running ? start() : stop()));
+if (startBtn) startBtn.addEventListener("click", () => (running ? stop() : start()));
 
-/* --------------------------------------------------
-    Visualizer buffers
--------------------------------------------------- */
+/* ----------------------------
+   Buffers
+   ---------------------------- */
 const timeBuf = new Float32Array(4096);
 
-/* --------------------------------------------------
-    Draw Spectrogram
--------------------------------------------------- */
+/* ----------------------------
+   Draw helpers
+   ---------------------------- */
 function drawSpectrogramColumn(mag) {
-    const w = spectroCanvas.width;
-    const h = spectroCanvas.height;
+  if (!spCtx || !spectroCanvas) return;
+  const w = spectroCanvas.width, h = spectroCanvas.height;
+  if (w <= 1 || h <= 1) return;
 
-    const image = spCtx.getImageData(1, 0, w - 1, h);
-    spCtx.putImageData(image, 0, 0);
+  // shift left
+  const img = spCtx.getImageData(1, 0, w - 1, h);
+  spCtx.putImageData(img, 0, 0);
 
-    const col = spCtx.createImageData(1, h);
-    for (let y = 0; y < h; y++) {
-        const idx = Math.floor((y / h) * mag.length);
-        const v = Math.min(Math.log1p(mag[idx]) * 60, 255);
-
-        col.data[(h - 1 - y) * 4 + 0] = v;
-        col.data[(h - 1 - y) * 4 + 1] = v * 0.7;
-        col.data[(h - 1 - y) * 4 + 2] = v * 0.5;
-        col.data[(h - 1 - y) * 4 + 3] = 255;
-    }
-    spCtx.putImageData(col, w - 1, 0);
+  const col = spCtx.createImageData(1, h);
+  for (let y = 0; y < h; y++) {
+    const idx = Math.floor((y / h) * mag.length);
+    const v = Math.min(Math.max(Math.log1p(Math.abs(mag[idx] || 0)) * 60, 0), 255);
+    col.data[(h - 1 - y) * 4 + 0] = v;
+    col.data[(h - 1 - y) * 4 + 1] = Math.floor(v * 0.6);
+    col.data[(h - 1 - y) * 4 + 2] = Math.floor(v * 0.4);
+    col.data[(h - 1 - y) * 4 + 3] = 255;
+  }
+  spCtx.putImageData(col, w - 1, 0);
 }
 
-/* --------------------------------------------------
-    Draw Chroma Bars
--------------------------------------------------- */
 function drawChromaBars(chroma) {
-    const w = chromaCanvas.width;
-    const h = chromaCanvas.height;
-    const bw = w / 12;
-
-    chCtx.clearRect(0, 0, w, h);
-    const labels = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-
-    for (let i = 0; i < 12; i++) {
-        const hh = chroma[i] * h;
-        chCtx.fillStyle = `hsl(${i * 30}, 80%, 55%)`;
-        chCtx.fillRect(i * bw + 3, h - hh, bw - 6, hh);
-
-        chCtx.fillStyle = "#333";
-        chCtx.font = "10px monospace";
-        chCtx.fillText(labels[i], i * bw + bw / 2 - 8, h - 4);
-    }
+  if (!chCtx || !chromaCanvas) return;
+  const w = chromaCanvas.width, h = chromaCanvas.height;
+  const bw = w / 12;
+  chCtx.clearRect(0, 0, w, h);
+  const labels = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  for (let i = 0; i < 12; i++) {
+    const hh = (chroma[i] || 0) * h;
+    chCtx.fillStyle = `hsl(${i * 30}, 70%, 55%)`;
+    chCtx.fillRect(i * bw + 3, h - hh, bw - 6, hh);
+    chCtx.fillStyle = "#333";
+    chCtx.font = "10px monospace";
+    chCtx.fillText(labels[i], i * bw + bw / 2 - 8, h - 4);
+  }
 }
 
-/* --------------------------------------------------
-    Estimate frequency for tuning
--------------------------------------------------- */
+/* ----------------------------
+   FFT -> freq estimate helper
+   ---------------------------- */
 function estimateFreqFromFFT(mag, sampleRate, fftSize, centerFreq, windowHz = 20) {
-    const binSize = sampleRate / fftSize;
-    const centerBin = Math.round(centerFreq / binSize);
-    const half = Math.round(windowHz / binSize);
+  if (!mag || mag.length === 0) return -1;
+  const binSize = sampleRate / fftSize;
+  const centerBin = Math.round(centerFreq / binSize);
+  const half = Math.max(1, Math.round(windowHz / binSize));
 
-    let max = 0;
-    let maxIdx = -1;
+  let maxIdx = -1, maxVal = -Infinity;
+  const lo = Math.max(0, centerBin - half);
+  const hi = Math.min(mag.length - 1, centerBin + half);
+  for (let b = lo; b <= hi; b++) {
+    const v = mag[b] || 0;
+    if (v > maxVal) { maxVal = v; maxIdx = b; }
+  }
+  if (maxIdx < 0) return -1;
 
-    for (let b = centerBin - half; b <= centerBin + half; b++) {
-        if (b < 0 || b >= mag.length) continue;
-        if (mag[b] > max) {
-            max = mag[b];
-            maxIdx = b;
-        }
-    }
-
-    if (maxIdx < 0) return -1;
-
-    // parabolic peak interpolation
-    const a = mag[maxIdx - 1] || 0;
-    const b = mag[maxIdx];
-    const c = mag[maxIdx + 1] || 0;
-    const p = 0.5 * (a - c) / (a - 2 * b + c);
-
-    return (maxIdx + p) * binSize;
+  const left = mag[maxIdx - 1] || 0;
+  const center = mag[maxIdx] || 0;
+  const right = mag[maxIdx + 1] || 0;
+  const denom = (left - 2 * center + right);
+  const p = denom === 0 ? 0 : 0.5 * (left - right) / denom;
+  return (maxIdx + p) * binSize;
 }
 
-/* --------------------------------------------------
-    Main Audio Processing
--------------------------------------------------- */
+/* ----------------------------
+   Main processing
+   ---------------------------- */
 function processAudio() {
-    if (!analyser || !audioCtx) return;
+  if (!analyser || !audioCtx) return;
 
-    /* ---- 1. Time domain ---- */
+  try {
     analyser.getFloatTimeDomainData(timeBuf);
-    // pitch not used directly because we use FFT for strings
+  } catch (e) {
+    uiLog("Time domain read error: " + e.message);
+    return;
+  }
 
-    /* ---- 2. FFT ---- */
-    const freqBins = new Float32Array(analyser.frequencyBinCount);
+  // FFT (dB values)
+  const bins = analyser.frequencyBinCount;
+  const freqBins = new Float32Array(bins);
+  try {
     analyser.getFloatFrequencyData(freqBins);
+  } catch (e) {
+    uiLog("Frequency read error: " + e.message);
+    return;
+  }
 
-    const mag = new Float32Array(freqBins.length);
-    for (let i = 0; i < freqBins.length; i++)
-        mag[i] = Math.pow(10, freqBins[i] / -20);
+  // convert dB -> linear magnitude. dB is negative; use /20
+  const mag = new Float32Array(bins);
+  for (let i = 0; i < bins; i++) {
+    const db = freqBins[i];
+    // if db is -Infinity, skip
+    if (!isFinite(db)) { mag[i] = 0; continue; }
+    mag[i] = Math.pow(10, db / 20); // correct conversion
+  }
 
-    /* ---- 3. Tuner ---- */
-    if (modeSelect.value !== "chord") {
-        const strings = [
-            { freq: 392.0, needle: needleG, out: freqG },
-            { freq: 261.63, needle: needleC, out: freqC },
-            { freq: 329.63, needle: needleE, out: freqE },
-            { freq: 440.0, needle: needleA, out: freqA },
-        ];
-
-        for (let s of strings) {
-            let f = estimateFreqFromFFT(mag, audioCtx.sampleRate, analyser.fftSize, s.freq);
-            if (f < 0) {
-                s.out.textContent = "- Hz";
-                s.needle.style.left = "50%";
-            } else {
-                s.out.textContent = f.toFixed(1) + " Hz";
-                const diff = f - s.freq;
-                const px = 50 + Math.max(-45, Math.min(45, diff * 6));
-                s.needle.style.left = px + "%";
-            }
-        }
+  // TUNER (per string) - only if in mode
+  if (!modeSelect || modeSelect.value !== "chord") {
+    const strings = [
+      { freq: 392.0, needle: needleG, out: freqG },
+      { freq: 261.63, needle: needleC, out: freqC },
+      { freq: 329.63, needle: needleE, out: freqE },
+      { freq: 440.0, needle: needleA, out: freqA },
+    ];
+    for (const s of strings) {
+      if (!s.needle || !s.out) continue;
+      const f = estimateFreqFromFFT(mag, audioCtx.sampleRate, analyser.fftSize, s.freq);
+      if (f <= 0 || !isFinite(f)) {
+        s.out.textContent = "- Hz";
+        s.needle.style.left = "50%";
+      } else {
+        s.out.textContent = f.toFixed(1) + " Hz";
+        const diff = f - s.freq;
+        const px = 50 + Math.max(-45, Math.min(45, diff * 6));
+        s.needle.style.left = px + "%";
+      }
     }
+  }
 
-    /* ---- 4. Chroma ---- */
-    const chroma = computeChroma(mag, audioCtx.sampleRate, analyser.fftSize);
-    drawChromaBars(chroma);
+  // CHROMA & CHORD
+  const chroma = computeChroma(mag, audioCtx.sampleRate, analyser.fftSize);
+  drawChromaBars(chroma);
 
-    /* ---- 5. Chord detection ---- */
-    if (modeSelect.value !== "tuner") {
-        const chord = detectChordFromChroma(chroma);
-        const threshold = chromaThresh.valueAsNumber / 100;
-
-        if (chord.score >= threshold) {
-            chordLabel.textContent = chord.chord;
-            chordLabel.style.color = chord.chord.endsWith("m") ? "#8C5E62" : "#FF7F73";
-        } else {
-            chordLabel.textContent = "--";
-            chordLabel.style.color = "#555";
-        }
-        chordScore.textContent = `Score: ${chord.score.toFixed(2)}`;
+  if (!modeSelect || modeSelect.value !== "tuner") {
+    const chord = detectChordFromChroma(chroma);
+    const threshold = (chromaThresh && chromaThresh.valueAsNumber) ? chromaThresh.valueAsNumber / 100 : 0.5;
+    if (chord && chord.score >= threshold) {
+      if (chordLabel) {
+        chordLabel.textContent = chord.chord;
+        chordLabel.style.color = chord.chord.endsWith("m") ? "#8C5E62" : "#FF7F73";
+      }
+    } else {
+      if (chordLabel) { chordLabel.textContent = "--"; chordLabel.style.color = "#555"; }
     }
+    if (chordScore) chordScore.textContent = `Score: ${chord ? chord.score.toFixed(2) : "0.00"}`;
+  }
 
-    /* ---- 6. Spectrogram ---- */
-    drawSpectrogramColumn(mag);
+  // Spectrogram
+  drawSpectrogramColumn(mag);
 }
 
-/* --------------------------------------------------
-    Animation Loop
--------------------------------------------------- */
+/* ----------------------------
+   Animation loop
+   ---------------------------- */
 function renderLoop() {
-    if (!running) return;
-    requestAnimationFrame(renderLoop);
-    processAudio();
+  if (!running) return;
+  requestAnimationFrame(renderLoop);
+  processAudio();
 }
 
-/* --------------------------------------------------
-    Keyboard Shortcut
--------------------------------------------------- */
-window.addEventListener("keydown", e => {
-    if (e.code === "Space") {
-        e.preventDefault();
-        running ? stop() : start();
-    }
+/* ----------------------------
+   Keyboard shortcut
+   ---------------------------- */
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    running ? stop() : start();
+  }
 });
+
+/* ----------------------------
+   Expose start/stop for debug
+   ---------------------------- */
+window.UKCOZY = window.UKCOZY || {};
+window.UKCOZY.start = start;
+window.UKCOZY.stop = stop;
