@@ -2,8 +2,8 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.getElementById('startBtn');
-  const themeBtn = document.getElementById('themeBtn');
-  const installBtn = document.getElementById('installBtn');
+  const themeBtn = document.getElementById('themeToggle');
+  const installBtn = null;
   const log = document.getElementById('log');
 
   // pulsing effect for start button
