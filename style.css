@@ -1,46 +1,142 @@
-:root{
-  --bg:#FFF8E1; --panel:#FFE0B2; --accent:#FF7043; --muted:#6B4C3B;
-  --card-radius:12px; --glass: rgba(255,255,255,0.6);
+:root {
+    --bg: #fdf5f0;
+    --card: rgba(255, 255, 255, 0.55);
+    --text: #5a4b47;
+    --border: rgba(255, 192, 179, 0.6);
+    --pink: #ffb4b4;
+    --orange: #ffd5a5;
+    --yellow: #ffe7a0;
+    --shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
-*{box-sizing:border-box}
-body{
-  margin:0; font-family:Inter, system-ui, Arial; background:var(--bg); color:var(--muted);
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Poppins", sans-serif;
+    background: linear-gradient(135deg, #ffece6, #fff8f2);
+    color: var(--text);
 }
-.topbar{
-  height:64px; background:var(--muted); color:white; display:flex; align-items:center;
-  justify-content:space-between; padding:0 16px;
+
+.app-container {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
 }
-.brand{font-weight:700}
-.layout{display:flex; gap:16px; padding:18px}
-.left{flex:1}
-.right{width:360px}
 
-/* card */
-.card{background:var(--panel); border-radius:var(--card-radius); padding:12px; margin-bottom:12px; box-shadow:0 6px 18px rgba(0,0,0,0.06)}
-.big-card{display:flex; flex-direction:column; gap:10px; align-items:flex-start; padding:20px;}
-.card-title{font-weight:700; color:var(--muted); margin-bottom:6px}
-.chordLabel{font-size:68px; font-weight:800; color:var(--muted)}
-.score{color:#785b4b}
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
 
-/* visualizers */
-.visual-card canvas{width:100%; display:block; background:white; border-radius:8px}
+.toggle-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 14px;
+    cursor: pointer;
+}
 
-/* tuner rows */
-.tuner-row{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed rgba(0,0,0,0.04)}
-.string-label{width:38px; font-weight:700}
-.needle-wrap{flex:1; height:28px; position:relative; background:linear-gradient(90deg,#fff,#fff); border-radius:6px; overflow:hidden}
-.needle{position:absolute; left:50%; top:0; transform:translateX(-50%); color:var(--accent); font-weight:900; transition:left 120ms linear}
-.freq{width:80px; text-align:right; font-family:monospace}
+.card {
+    background: var(--card);
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+}
 
-/* controls */
-.inline-controls{display:flex; gap:8px; align-items:center}
-button.start{background:var(--accent); color:white; border:none; padding:10px 14px; border-radius:8px; cursor:pointer}
+.small-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
 
-/* log */
-.log{height:160px; overflow:auto; background:#fff; padding:8px; border-radius:8px; font-family:monospace; font-size:12px}
+.chord-card {
+    text-align: center;
+}
 
-/* responsive */
-@media(max-width:980px){
-  .layout{flex-direction:column}
-  .right{width:auto}
+.chord {
+    font-size: 64px;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+.score {
+    font-size: 14px;
+    opacity: 0.6;
+}
+
+.start-btn {
+    width: 100%;
+    padding: 16px;
+    font-size: 18px;
+    background: var(--pink);
+    border: 0;
+    border-radius: 22px;
+    cursor: pointer;
+    color: white;
+    box-shadow: var(--shadow);
+    transition: 0.2s;
+}
+
+.start-btn.pulse {
+    animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1);}
+    50% { transform: scale(1.04);}
+    100% { transform: scale(1);}
+}
+
+.canvas-row {
+    display: flex;
+    gap: 10px;
+}
+
+#spectroCanvas, #chromaCanvas {
+    width: 100%;
+    height: 140px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 12px;
+}
+
+.tuner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.string div {
+    margin-bottom: 4px;
+}
+
+.needle-box {
+    background: #fff3ea;
+    height: 10px;
+    border-radius: 6px;
+    position: relative;
+}
+
+.needle {
+    width: 6px;
+    height: 18px;
+    background: var(--pink);
+    border-radius: 5px;
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transition: 0.1s ease;
+}
+
+.logbox {
+    background: #fff9f5;
+    height: 120px;
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 12px;
 }

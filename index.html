@@ -1,92 +1,102 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UkCozy Tuner</title>
-
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css" />
-  <meta name="theme-color" content="#6B4C3B" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UkCozy – Tuner & Chord Detector</title>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">🎸 UkCozy Tuner & Chord Detector</div>
-    <div class="actions">
-      <button id="installBtn" hidden>Install App</button>
-      <button id="themeBtn">Toggle Theme</button>
-    </div>
-  </header>
 
-  <main class="layout">
-    <section class="left">
-      <div class="card big-card">
-        <div class="card-title">Realtime Chord</div>
-        <div id="chordLabel" class="chordLabel">--</div>
+<div class="app-container">
+
+    <!-- Header -->
+    <header class="header">
+        <h1>🎀 UkCozy</h1>
+        <h2>Tuner + Chord Detector</h2>
+        <button id="themeToggle" class="toggle-btn">🌙</button>
+    </header>
+
+    <!-- Chord Card -->
+    <section class="card chord-card glass">
+        <div class="label">Realtime Chord</div>
+        <div id="chordLabel" class="chord">--</div>
         <div id="chordScore" class="score">Score: -</div>
-        <div class="inline-controls">
-          <select id="modeSelect">
-            <option value="both">Chord + Tuner</option>
-            <option value="chord">Chord only</option>
-            <option value="tuner">Tuner only</option>
-          </select>
-          <button id="startBtn" class="start">START</button>
-        </div>
-      </div>
-
-      <div class="card visual-card">
-        <div class="card-title">Visualizer</div>
-        <canvas id="spectroCanvas" height="140"></canvas>
-        <canvas id="chromaCanvas" height="64"></canvas>
-      </div>
     </section>
 
-    <aside class="right">
-      <div class="card small-card">
-        <div class="card-title">Tuner (Ukulele)</div>
-        <div class="tuner-row">
-          <div class="string-label">G4</div>
-          <div class="needle-wrap"><div id="needleG" class="needle">|</div></div>
-          <div id="freqG" class="freq">- Hz</div>
-        </div>
-        <div class="tuner-row">
-          <div class="string-label">C4</div>
-          <div class="needle-wrap"><div id="needleC" class="needle">|</div></div>
-          <div id="freqC" class="freq">- Hz</div>
-        </div>
-        <div class="tuner-row">
-          <div class="string-label">E4</div>
-          <div class="needle-wrap"><div id="needleE" class="needle">|</div></div>
-          <div id="freqE" class="freq">- Hz</div>
-        </div>
-        <div class="tuner-row">
-          <div class="string-label">A4</div>
-          <div class="needle-wrap"><div id="needleA" class="needle">|</div></div>
-          <div id="freqA" class="freq">- Hz</div>
-        </div>
-      </div>
+    <!-- Mode Selector -->
+    <section class="card glass small-card">
+        <label>Mode</label>
+        <select id="modeSelect">
+            <option value="both">Chord + Tuner</option>
+            <option value="chord">Chord Only</option>
+            <option value="tuner">Tuner Only</option>
+        </select>
+    </section>
 
-      <div class="card small-card">
-        <div class="card-title">Controls</div>
+    <!-- Start Button -->
+    <button id="startBtn" class="start-btn">START</button>
+
+    <!-- Visualizers -->
+    <section class="card glass">
+        <h3>Visualizer</h3>
+        <div class="canvas-row">
+            <canvas id="spectroCanvas"></canvas>
+            <canvas id="chromaCanvas"></canvas>
+        </div>
+    </section>
+
+    <!-- Tuner Section -->
+    <section class="card glass">
+        <h3>Tuner (Ukulele)</h3>
+
+        <div class="tuner-grid">
+            <div class="string">
+                <div>G4</div>
+                <div class="needle-box"><div id="needleG" class="needle"></div></div>
+                <div id="freqG">- Hz</div>
+            </div>
+
+            <div class="string">
+                <div>C4</div>
+                <div class="needle-box"><div id="needleC" class="needle"></div></div>
+                <div id="freqC">- Hz</div>
+            </div>
+
+            <div class="string">
+                <div>E4</div>
+                <div class="needle-box"><div id="needleE" class="needle"></div></div>
+                <div id="freqE">- Hz</div>
+            </div>
+
+            <div class="string">
+                <div>A4</div>
+                <div class="needle-box"><div id="needleA" class="needle"></div></div>
+                <div id="freqA">- Hz</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="card glass small-card">
+        <h3>Controls</h3>
+
         <label>Sensitivity</label>
-        <input id="threshold" type="range" min="0" max="100" value="10" />
-        <label>Chroma threshold</label>
-        <input id="chromaThresh" type="range" min="0" max="100" value="20" />
-      </div>
+        <input id="threshold" type="range" min="0" max="100" value="30" />
 
-      <div class="card small-card">
-        <div class="card-title">Log</div>
-        <pre id="log" class="log"></pre>
-      </div>
-    </aside>
-  </main>
+        <label>Chroma Threshold</label>
+        <input id="chromaThresh" type="range" min="0" max="100" value="50" />
+    </section>
 
-  <script type="module" src="dist/main.js"></script>
-  <script>
-    // register service worker for PWA
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
-    }
-  </script>
+    <!-- Log Window -->
+    <section class="card glass">
+        <h3>Log</h3>
+        <pre id="log" class="logbox"></pre>
+    </section>
+
+</div>
+
+<script src="ui.js"></script>
+<script src="main.js" type="module"></script>
 </body>
 </html>
