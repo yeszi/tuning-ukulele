@@ -1,24 +1,92 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ukulele Tuner TS</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UkCozy Tuner</title>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+  <meta name="theme-color" content="#6B4C3B" />
 </head>
 <body>
+  <header class="topbar">
+    <div class="brand">🎸 UkCozy Tuner & Chord Detector</div>
+    <div class="actions">
+      <button id="installBtn" hidden>Install App</button>
+      <button id="themeBtn">Toggle Theme</button>
+    </div>
+  </header>
 
-  <h1>🎵 Ukulele Tuner (TypeScript)</h1>
+  <main class="layout">
+    <section class="left">
+      <div class="card big-card">
+        <div class="card-title">Realtime Chord</div>
+        <div id="chordLabel" class="chordLabel">--</div>
+        <div id="chordScore" class="score">Score: -</div>
+        <div class="inline-controls">
+          <select id="modeSelect">
+            <option value="both">Chord + Tuner</option>
+            <option value="chord">Chord only</option>
+            <option value="tuner">Tuner only</option>
+          </select>
+          <button id="startBtn" class="start">START</button>
+        </div>
+      </div>
 
-  <div class="tuner-box">
-      <h2>Current Note</h2>
-      <div id="note">--</div>
+      <div class="card visual-card">
+        <div class="card-title">Visualizer</div>
+        <canvas id="spectroCanvas" height="140"></canvas>
+        <canvas id="chromaCanvas" height="64"></canvas>
+      </div>
+    </section>
 
-      <h3>Frequency: <span id="freq">0</span> Hz</h3>
-      <h3>Status: <span id="status">-</span></h3>
-  </div>
+    <aside class="right">
+      <div class="card small-card">
+        <div class="card-title">Tuner (Ukulele)</div>
+        <div class="tuner-row">
+          <div class="string-label">G4</div>
+          <div class="needle-wrap"><div id="needleG" class="needle">|</div></div>
+          <div id="freqG" class="freq">- Hz</div>
+        </div>
+        <div class="tuner-row">
+          <div class="string-label">C4</div>
+          <div class="needle-wrap"><div id="needleC" class="needle">|</div></div>
+          <div id="freqC" class="freq">- Hz</div>
+        </div>
+        <div class="tuner-row">
+          <div class="string-label">E4</div>
+          <div class="needle-wrap"><div id="needleE" class="needle">|</div></div>
+          <div id="freqE" class="freq">- Hz</div>
+        </div>
+        <div class="tuner-row">
+          <div class="string-label">A4</div>
+          <div class="needle-wrap"><div id="needleA" class="needle">|</div></div>
+          <div id="freqA" class="freq">- Hz</div>
+        </div>
+      </div>
 
-  <button id="startBtn">Start Tuning</button>
+      <div class="card small-card">
+        <div class="card-title">Controls</div>
+        <label>Sensitivity</label>
+        <input id="threshold" type="range" min="0" max="100" value="10" />
+        <label>Chroma threshold</label>
+        <input id="chromaThresh" type="range" min="0" max="100" value="20" />
+      </div>
 
-  <script src="dist/main.js"></script>
+      <div class="card small-card">
+        <div class="card-title">Log</div>
+        <pre id="log" class="log"></pre>
+      </div>
+    </aside>
+  </main>
+
+  <script type="module" src="dist/main.js"></script>
+  <script>
+    // register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+  </script>
 </body>
 </html>
