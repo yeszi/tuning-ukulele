@@ -1,20 +1,38 @@
 :root {
-    --bg: #fdf5f0;
-    --card: rgba(255, 255, 255, 0.55);
-    --text: #5a4b47;
-    --border: rgba(255, 192, 179, 0.6);
-    --pink: #ffb4b4;
-    --orange: #ffd5a5;
-    --yellow: #ffe7a0;
-    --shadow: 0 8px 20px rgba(0,0,0,0.08);
+    /* --- PALET WARNA UKULELE & COZY --- */
+    /* Latar belakang krem hangat seperti kertas tua atau kayu spruce */
+    --bg-light: #fdfbf7; 
+    --bg-dark: #f2e6d9;
+    
+    /* Kartu transparan dengan tint coklat muda */
+    --card: rgba(255, 252, 248, 0.75);
+    
+    /* Warna Teks: Coklat Kopi Tua (agar kontras tapi lembut di mata) */
+    --text: #4a3b32;
+    
+    /* Border halus warna coklat susu */
+    --border: rgba(161, 136, 127, 0.4);
+    
+    /* ACCENT COLORS */
+    /* Warna utama: Coklat Kayu Mahogany (pengganti Pink) */
+    --wood-primary: #a0522d; 
+    /* Warna sekunder: Coklat Emas/Amber (pengganti Orange/Yellow) */
+    --wood-light: #d4a373;
+    /* Warna highlight lembut */
+    --cream-highlight: #faedcd;
+    
+    /* Bayangan hangat */
+    --shadow: 0 10px 25px rgba(93, 64, 55, 0.15);
 }
 
 body {
     margin: 0;
     padding: 0;
     font-family: "Poppins", sans-serif;
-    background: linear-gradient(135deg, #ffece6, #fff8f2);
+    /* Gradasi background yang lebih 'creamy' dan hangat */
+    background: linear-gradient(135deg, var(--bg-light), var(--bg-dark));
     color: var(--text);
+    min-height: 100vh; /* Memastikan background full layar */
 }
 
 .app-container {
@@ -25,118 +43,179 @@ body {
 
 .header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    /* Opsional: Memberikan warna kayu pada judul */
+    color: var(--wood-primary);
+    letter-spacing: 1px;
 }
 
 .toggle-btn {
     position: absolute;
     top: 20px;
     right: 20px;
-    background: var(--card);
+    background: #fff;
     border: 1px solid var(--border);
+    color: var(--wood-primary);
     border-radius: 12px;
     padding: 8px 14px;
     cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+    background: var(--cream-highlight);
+    transform: translateY(-2px);
 }
 
 .card {
     background: var(--card);
-    padding: 20px;
-    border-radius: 18px;
+    padding: 25px;
+    border-radius: 20px; /* Sudut lebih bulat agar lebih friendly */
     box-shadow: var(--shadow);
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     border: 1px solid var(--border);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px); /* Efek kaca buram */
 }
 
 .small-card {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .chord-card {
     text-align: center;
+    /* Sedikit background gradient tipis agar fokus */
+    background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.4));
 }
 
 .chord {
-    font-size: 64px;
-    font-weight: bold;
+    font-size: 72px;
+    font-weight: 800;
     margin-top: 5px;
+    color: var(--wood-primary); /* Warna Chord jadi Coklat Kayu */
+    text-shadow: 2px 2px 0px rgba(255,236,179,0.5); /* Efek timbul halus */
 }
 
 .score {
     font-size: 14px;
-    opacity: 0.6;
+    font-style: italic;
+    opacity: 0.8;
+    color: var(--wood-light);
 }
 
 .start-btn {
     width: 100%;
-    padding: 16px;
+    padding: 18px;
     font-size: 18px;
-    background: var(--pink);
+    font-weight: 600;
+    /* Ganti warna pink menjadi warna Kayu Glossy */
+    background: linear-gradient(135deg, #b06d45, #8b4513);
     border: 0;
     border-radius: 22px;
     cursor: pointer;
-    color: white;
-    box-shadow: var(--shadow);
-    transition: 0.2s;
+    color: #fffaf0; /* Tulisan putih gading */
+    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.5px;
+}
+
+.start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
+}
+
+.start-btn:active {
+    transform: scale(0.98);
 }
 
 .start-btn.pulse {
-    animation: pulse 1.2s infinite;
+    animation: pulse 1.5s infinite ease-in-out;
 }
 
 @keyframes pulse {
-    0% { transform: scale(1);}
-    50% { transform: scale(1.04);}
-    100% { transform: scale(1);}
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(160, 82, 45, 0.7); }
+    70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(160, 82, 45, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(160, 82, 45, 0); }
 }
 
 .canvas-row {
     display: flex;
-    gap: 10px;
+    gap: 15px;
 }
 
 #spectroCanvas, #chromaCanvas {
     width: 100%;
     height: 140px;
-    background: rgba(255,255,255,0.4);
-    border-radius: 12px;
+    background: rgba(253, 247, 242, 0.6); /* Background kanvas lebih hangat */
+    border: 1px solid var(--border);
+    border-radius: 14px;
 }
 
 .tuner-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: 16px;
+}
+
+.string {
+    font-weight: 600;
+    color: var(--wood-primary);
 }
 
 .string div {
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .needle-box {
-    background: #fff3ea;
-    height: 10px;
-    border-radius: 6px;
+    background: #ebe0d6; /* Warna senar off */
+    height: 12px;
+    border-radius: 8px;
     position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .needle {
-    width: 6px;
-    height: 18px;
-    background: var(--pink);
-    border-radius: 5px;
+    width: 8px;
+    height: 20px;
+    /* Jarumnya warna coklat tua kemerahan */
+    background: #8d4021;
+    border-radius: 4px;
     position: absolute;
     top: -4px;
     left: 50%;
-    transition: 0.1s ease;
+    transition: 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .logbox {
-    background: #fff9f5;
+    background: #fffcf9;
     height: 120px;
     overflow-y: auto;
-    padding: 10px;
-    border-radius: 12px;
+    padding: 15px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    font-family: "Courier New", monospace; /* Font monospace agar seperti ketikan mesin tik lama */
+    font-size: 13px;
+    color: var(--wood-primary);
+}
+
+/* Custom Scrollbar agar match dengan tema */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #d7ccc8;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #a1887f;
 }
