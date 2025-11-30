@@ -1,0 +1,32 @@
+body {
+  background: #fbe9e7;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 20px;
+}
+
+.tuner-box {
+  background: #ffe0b2;
+  padding: 25px;
+  border-radius: 10px;
+  width: 300px;
+  margin: auto;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.1);
+}
+
+#note {
+  font-size: 60px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+button {
+  margin-top: 20px;
+  padding: 12px 20px;
+  font-size: 18px;
+  background: #ff7043;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
